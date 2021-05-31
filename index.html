@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+
+<style type="text/css">
+
+b {
+	font-weight: bold;
+}
+
+#container {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background: #806B48;
+	color: gainsboro;
+	overflow: hidden;
+	font-family: 'Courier New', monospace;
+}
+
+#headContent {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 48px;
+	background: rgba(255, 255, 255, .05);
+	border-bottom: 2px solid rgba(255, 255, 255, .1);
+	z-index: 1;
+	transition: all .15s;
+}
+
+#leftContent {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 198px;
+	height: 100%;
+	border-right: 2px solid rgba(255, 255, 255, .1);
+	user-select: none;
+	transition: all .15s;
+}
+
+#bodyContent {
+	position: absolute;
+	left: 200px;
+	top: 50px;
+	width: calc(100% - 200px);
+	height: calc(100% - 50px);
+	z-index: 0;
+	transition: all .15s;
+	overflow: hidden;
+}
+
+#consoleLog {
+	position: absolute;
+	padding: 10px 10px;
+	width: calc(100% - 20px);
+	bottom: 50px;
+	max-height: calc(100% - 70px);
+	overflow: hidden;
+	font-size: 24px;
+	transition: 1s;
+}
+
+#consoleInput {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	height: 50px;
+}
+
+#playerInput {
+	background: transparent;
+	font-family: 'Courier New', monospace;
+	font-size: 18px;
+	outline: none;
+	margin: 5px;
+	padding: 10px;
+	border: none;
+	background: rgba(255, 255, 255, .4);
+	border-radius: 10px;
+	font-weight: bold;
+	width: calc(100% - 30px);
+}
+
+#playerInput:focus {
+	box-shadow: 0 0 3px 1px;
+}
+
+.leftTile {
+	width: 100%;
+	height: 48px;
+	border-bottom: 2px solid rgba(255, 255, 255, .1);
+}
+
+.headTile {
+	width: 48px;
+	height: 48px;
+	float: right;
+}
+
+.healthTile {
+	width: 22px;
+	height: 48px;
+	float: right;
+}
+
+.userIcon {
+	width: 32px;
+	height: 32px;
+	margin: 9px;
+	border-radius: 16px;
+	background: gainsboro;
+}
+
+.labelHP {
+	width: 32px;
+	height: 32px;
+	margin: 9px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.userHealth {
+	width: 16px;
+	height: 32px;
+	margin: 9px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hp {
+	background: red;
+}
+
+.armor {
+	background: royalblue;
+	animation-name: gainArmor;
+	animation-duration: 2s;
+}
+
+@keyframes rotateColors {
+	0% {color: white;}
+	25% {color: yellow; transform: skew(-5deg, -5deg)}
+	50% {color: lime;}
+	75% {color: yellow; transform: skew(5deg, 5deg)}
+	100% {color: white;}
+}
+
+@keyframes gainArmor {
+	from {background: yellow;}
+	to {background: royalblue;}
+}
+
+.textSpacing {
+	padding: 15px;
+}
+
+.invObj {
+	padding: 5px 15px;
+	border-bottom: 1px solid rgba(255, 255, 255, .1);
+}
+
+.invObj:hover .tTip {
+	display: block;
+}
+
+.tTip {
+	position: fixed;
+	padding: 5px 15px;
+	border: 1px solid rgba(255, 255, 255, .1);
+	display: none;
+	font-size: 12px;
+	background: #806B48;
+	width: 200px;
+	z-index: 10;
+}
+
+.overlay {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	user-select: none;
+	pointer-events: none;
+}
+
+.lantern {
+	background: radial-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, .7));
+}
+
+.hit {
+	transition: all .15s;
+	background: rgba(255, 0, 0, 0);
+}
+
+.death {
+	background: radial-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0));
+}
+
+.youDied {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	color: rgba(0, 0, 0, 0);
+	font-weight: bold;
+	transition: all .45s;
+	font-family: 'Courier New', monospace;
+}
+
+.redText {
+	color: rgba(255, 0, 0, 1);
+	text-shadow: 2px 2px 1px black;
+	font-weight: bolder;
+}
+
+</style>
+<script type="text/javascript">
+	
+var gameWorld = {
+	'0':[],
+	'25':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'You are in a dark cave. The area you are in has been formed entirely of stone.<br><br>',
+		'objects':['lantern'],
+		'containers':['worn box'],
+		'contents':[['light armor', 'bloody note', 'fine note']],
+		'entities':[],
+		'enemies':[],
+		'exits':['west', 'east', 'south']
+	},
+	'35':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'You are in a small enclosed area within the cave. You can hear water dripping from the stalactites above you.'+
+			'<br><br>',
+		'objects':[],
+		'containers':['backpack'],
+		'contents':[['knife']],
+		'entities':[],
+		'enemies':['tarantula'],
+		'exits':['north', 'south']
+	},
+	'24':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'You see the stone walls here are decorated with heads of dead people and creatures alike. The floor of the cave has been marked with an ancient text you cannot possibly decipher.<br><br>',
+		'objects':[],
+		'containers':[],
+		'contents':[],
+		'entities':[],
+		'enemies':['minotaur'],
+		'exits':['south', 'east']
+	},
+	'45':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'This is a dead end in the cave. It looks as if there was a cave-in here long ago as moss has grown over the rubble blocking the way south.<br><br>',
+		'objects':[],
+		'containers':['worn box'],
+		'contents':[['heavy armor']],
+		'entities':[],
+		'enemies':['rabid dog'],
+		'exits':['north']
+	},
+	'26':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'The cave narrows to an end with a decorated wooden door on the east end. '+
+			'Bright chalk markings border the door, filling you with a feeling of suspicion. '+
+			'In the center of the area there is a small decorative table with items laid out on it.<br><br>',
+		'objects':['folded note', 'hard drugs'],
+		'containers':[],
+		'contents':[],
+		'entities':[],
+		'enemies':[],
+		'exits':['west', 'east']
+	},
+	'27':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'You feel at though you are no longer in the cave in which you started. '+
+			'This area is entirely void of color. The way in which you came has completely vanished '+
+			'and the only exit seems to be an otherworldly door ahead of you.<br><br>',
+		'objects':[],
+		'containers':[],
+		'contents':[],
+		'entities':[],
+		'enemies':['heck fiend'],
+		'exits':['east']
+	},
+	'28':{
+		'firstEnter':'You enter a room completely obscured by fog. '+
+			'You can barely see your own hands in front of your face as you make your way forward. '+ 
+			'Cautiosly you move and the fog thins. You can make out the silhouette of another person. '+
+			'"Hello?" you cry out but there is no response. It\'s features '+
+			'begin to become discernible as you continue to move. You see a man, an old... fat... shit... and bald man. '+
+			'Truly a hideous monster to behold.<br><br>As you stare at him he stares back. '+
+			'The fog thins further and it reveals not another man but your own reflection. '+
+			'You have been staring at a mirror. <br><br>'+
+			'The mirror suddenly cracks and several large shards crash to the ground.<br><br>',
+		'firstCheck':1,
+		'room':'The room is as black as the void.<br><br>',
+		'objects':['mirror armor', 'mirror shard'],
+		'containers':[],
+		'contents':[],
+		'entities':[],
+		'enemies':[],
+		'exits':[]
+	},
+	'34':{
+		'firstEnter':'',
+		'firstCheck':0,
+		'room':'You leave heading south through a long twisted passage. The dark seems to wax and wane until you finally reach a small opening. '+
+			'You can see it - The light at the end of the tunnel, your way home. '+
+			'You begin to rush toward the exit when you feel a heaviness weigh down upon you. '+
+			'You struggle to stay on your feet, but you keep pushing forward. '+
+			'Slowly you are brought to your hands and knees, but you continue to crawl. '+
+			'When suddenly, the voice returns.<br><br>'+
+			'Little Billy - You did it. You defeated all the challenges and earned your freedom.<br><br>'+
+			'However...<br><br>'+
+			'We aren\'t done here... you will never truly...<br><br>'+
+			'········································<br>'+
+			'·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓·<br>'+
+			'·▓·····▓·····▓·····▓···▓·▓···▓·▓·····▓▓·<br>'+
+			'·▓▓▓▓··▓▓▓▓▓·▓·····▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓·<br>'+
+			'·▓·········▓·▓·····▓···▓·▓·····▓········<br>'+
+			'·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓···▓·▓·····▓▓▓▓▓·▓▓·<br>'+
+			'········································<br><br>',
+		'objects':[],
+		'containers':[],
+		'contents':[],
+		'entities':[],
+		'enemies':[],
+		'exits':[]
+	}
+};
+
+var objDefinitions = {
+	'knife':{
+		'type':'piercing',
+		'damage':[3, 5, 10],
+		'weight':1,
+		'description':'a well crafted hunting tool to be used by adults. Be careful Little Billy!',
+		'critMessage':'Luckily the knife lands in your enemy\'s weak spot dealing '
+	},
+	'light armor':{
+		'weight':4,
+		'description':'Light armor that covers the basics.'
+	},
+	'heavy armor':{
+		'weight':4,
+		'description':'Heavy armor that provides decent protection.'
+	},
+	'lantern':{
+		'weight':2,
+		'description':'A worn lantern with no extrordinairy features. The light is dim, the oil must be low.'
+	},
+	'bloody note':{
+		'weight':.1,
+		'description':'<i>There is a crudely drawn arrow pointing downwards drawn in blood</i>'
+	},
+	'fine note':{
+		'weight':.1,
+		'description':'Dear Billy,<br>Go West :).'
+	},
+	'slimy mess':{
+		'weight':0.1,
+		'description':'The result of reflecting on your inner pain. Upon closer inspection you can almost see your past reflected in this disgusting liquid.'
+	},
+	'tarantula leg':{
+		'weight':0.1,
+		'description':'A fuzzy tarantula leg. This is totally useless.'
+	},
+	'dog paw':{
+		'weight':0.1,
+		'description':'A dog paw. Surely this will bring you good luck... Or was that rabbits?'
+	},
+	'dog pelt':{
+		'weight':3,
+		'description':'A trophy from a defeated dog. Hope you are proud of yourself Billy.'
+	},
+	'minotaur horn':{
+		'weight':3,
+		'description':'The horn of a minotaur. You should hang this on your wall when you get home.'
+	},
+	'minotaur axe':{
+		'type':'slashing',
+		'damage':[10, 12, 20],
+		'weight':8,
+		'description':'the weapon of a mighty foe.',
+		'critMessage':'The brutal force of the axe drives deep into your enemy dealing '
+	},
+	'folded note':{
+		'weight':0.1,
+		'description':'<i>Fancy Lettering Reads:</i><br>Only when your mind is drugged and your vision reversed can you <b>return</b> to me.'
+	},
+	'hard drugs':{
+		'weight':0.1,
+		'description':'Billy Nooooooooo!'
+	},
+	'mirror shard':{
+		'weight':0.1,
+		'description':'A mirror that seems to warp reality itself.'
+	},
+	'heckhammer':{
+		'type':'bludgeoning',
+		'damage':[7, 12, 15],
+		'weight':4,
+		'description':'a blazing hammer ready to wreak havoc across the land.',
+		'critMessage':'The brutal force of the hammer crushes your enemy dealing '
+	},
+	'mirror armor':{
+		'weight':0.1,
+		'description':'Very powerful armor.'
+	},
+};
+
+var enmDefinitions = {
+	'tarantula':{
+		'health':3,
+		'ac':6,
+		'damage':[1, 1],
+		'type':'piercing',
+		'defeat':'The tarantula screeches out in pain as it rolls on its back and its legs curl up.',
+		'death':'containers',
+		'turnTo':'tarantula corpse',
+		'description':'The miniscule creature\'s evil gaze strikes you with a feeling of terror'
+	},
+	'rabid dog':{
+		'health':6,
+		'ac':3,
+		'damage':[2, 3],
+		'type':'piercing',
+		'defeat':'The rabid dog lets out a whiper as its lifeless body falls to the ground.',
+		'death':'containers',
+		'turnTo':'dog corpse',
+		'description':'The dog shows its teeth and snarls as you approach'
+	},
+	'minotaur':{
+		'health':30,
+		'ac':1,
+		'damage':[10, 12],
+		'type':'slashing',
+		'defeat':'With a loud groan the minotaur falls face first into the ground.',
+		'death':'containers',
+		'turnTo':'minotaur corpse',
+		'description':'The minotaur lets out an other worldly laugh aknowledging you as his next victim'
+	},
+	'heck fiend':{
+		'health':10,
+		'ac':4,
+		'damage':[2, 5],
+		'type':'slashing',
+		'defeat':'With a final screach its body implodes, sending its remains back to the realm in which it came. As the dust clears you see it dropped something.',
+		'death':'objects',
+		'turnTo':'heckhammer',
+		'description':'The red imp screeches at you.'
+	}
+};
+
+var cntDefinitions = {
+	'worn box':{
+		'objects':[],
+		'spawn':[],
+		'description':'A box that looks ready to fall apart.'
+	},
+	'backpack':{
+		'objects':[],
+		'spawn':[],
+		'description':'An explorer\'s bag.'
+	},
+	'tarantula corpse':{
+		'objects':['tarantula leg'],
+		'spawn':[0, 2],
+		'description':'A lifeless tarantula husk.'
+	},
+	'dog corpse':{
+		'objects':['dog paw', 'dog pelt'],
+		'spawn':[0, 2],
+		'description':'The remains of a dog.'
+	},
+	'minotaur corpse':{
+		'objects':['minotaur horn', 'minotaur axe'],
+		'spawn':[1, 2],
+		'description':'The remains of a minotaur.'
+	}
+};
+
+var introScript = 'Welcome to...<br><br>'+
+	'········································<br>'+
+	'·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓·<br>'+
+	'·▓·····▓·····▓·····▓···▓·▓···▓·▓·····▓▓·<br>'+
+	'·▓▓▓▓··▓▓▓▓▓·▓·····▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓▓·<br>'+
+	'·▓·········▓·▓·····▓···▓·▓·····▓········<br>'+
+	'·▓▓▓▓▓·▓▓▓▓▓·▓▓▓▓▓·▓···▓·▓·····▓▓▓▓▓·▓▓·<br>'+
+	'········································<br><br>'+
+	'<i>**You hear a voice calling to you. It sounds like a balding man talking into a cup.**</i><br><br>'+
+	'Wake up Little Billy... You must wake up and escape this place or you will perish...<br><br>'+
+	'Everything is a blur as you gain consciousness. You smell the crisp cool air, feel the ice cold stone beneath your hands. Where could you possibly be? You remember falling asleep in your safe bed. You don\'t belong here, you are just a frail child. Certainly the smallest injury would mean your death. Finally the room around you comes into focus.<br><br>';
+
+var pLocation = 25;
+var wLength = 10;
+var pCombat = false;
+var unarmedDamage = {
+	'type':'bludgeoning',
+	'damage':[50, 51, 52],
+	'critMessage':'The anger tucked away from your miserable past swells into a blinding rage - you deal '
+};
+
+var pHealth = 1;
+var pAC = 4;
+var winRoom = 34;
+
+var enemyHP = 0;
+
+var d20 = [1, 20];
+
+var synGo = ['go', 'move', 'walk', 'run'];
+var synUse = ['use'];
+var synOpen = ['open'];
+var synClose = ['close', 'shut'];
+var synGrab = ['grab', 'take', 'pickup', 'get'];
+var synDrop = ['drop', 'leave']
+var synHelp = ['?', 'help'];
+var synRoom = ['around', 'room'];
+var synCry = ['cry'];
+var synSuicide = ['suicide', 'gg'];
+var synDick = ['dick', 'cock', 'penis'];
+var synFist = ['unarmed', 'fist', 'fists', 'foot', 'feet', 'hand', 'hands'];
+var synInspect = ['inspect', 'check', 'look'];
+var synReturn = ['return'];
+
+//game settings
+var newGame = true;
+var textSpeed = 0;
+var stringLimit = 5000;
+
+function main() {
+	if (newGame) {
+		refreshHPDisplay();
+		generateLoot();
+		sPrint(introScript, 'gotoRoom');
+		newGame = false;
+	} else {
+		roomDialouge();
+	}
+}
+
+function sendText() {
+	var cPrinter = document.getElementById('consoleLog');
+	var sString = pInput.value;
+	sGlobal += '> ' + sString + '<br><br>';
+	iGlobal += 4 + sString.length;
+	pInput.value = '';
+	cPrinter.scrollTop = cPrinter.scrollHeight;
+	readContext(sString);
+}
+
+function sPrint(outString, followUp) {
+	pInput.disabled = true;
+	sGlobal += outString;
+	var cPrinter = document.getElementById('consoleLog');
+	var printText = setInterval(function() {
+		cPrinter.innerHTML = sGlobal.substring(0, iGlobal);
+
+		if (sGlobal.length == iGlobal) {
+			if (followUp == undefined) {
+				clearInterval(printText);
+				pInput.disabled = false;
+				pInput.focus();
+				if (sGlobal.length > stringLimit) {
+					var strDiff = sGlobal.length - stringLimit;
+					sGlobal = sGlobal.substring(strDiff);
+					iGlobal = sGlobal.length;
+				}
+			} else if (followUp == 'combatReaction') {
+				clearInterval(printText);
+				damagePlayer();
+			} else if (followUp == 'deathReaction') {
+				clearInterval(printText);
+				victoryMessage();
+			} else if (followUp == 'gotoRoom') {
+				clearInterval(printText);
+				main();
+			}
+		}
+
+		iGlobal++;
+		cPrinter.scrollTop = cPrinter.scrollHeight;
+	}, textSpeed);
+}
+
+function roomDialouge() {
+	if (gameWorld[pLocation].enemies.length > 0) {
+		pCombat = true;
+		combatNotes();
+		sPrint('You see a ' + gameWorld[pLocation].enemies[0] + '. ' + enmDefinitions[gameWorld[pLocation].enemies[0]].description + '.<br>'+
+		'It appears readied for a fight.<br><br><i>**combat start**</i><br><br>');
+	} else {
+		var fObjects = listObjects();
+		var fExits = listExits();
+		console.log()
+		if (pLocation == winRoom) {
+			sPrint(gameWorld[pLocation].room);
+		} else if (gameWorld[pLocation].firstCheck == 1) {
+			gameWorld[pLocation].firstCheck = 0;
+			sPrint(gameWorld[pLocation].firstEnter + gameWorld[pLocation].room + fObjects + fExits);
+		} else {
+			sPrint(gameWorld[pLocation].room + fObjects + fExits);
+		}
+	}
+}
+
+function combatNotes() {
+	enemyHP = enmDefinitions[gameWorld[pLocation].enemies[0]].health;
+}
+
+var listObjects = function() {
+	var fObjects = gameWorld[pLocation].objects.concat(gameWorld[pLocation].containers);
+	var oString = 'You see a ';
+
+	for (i = 0; i < fObjects.length ; i++) {
+		if (fObjects.indexOf(fObjects[i], i+1) != -1) {
+			var tCounter = 1;
+			while (fObjects.indexOf(fObjects[i], i+1) != -1) {
+				fObjects.splice(fObjects.indexOf(fObjects[i], i+1), 1);
+				tCounter++;
+			}
+			fObjects[i] = '<b>' + fObjects[i] + '</b>(x' + tCounter + ')';
+		} else {
+			fObjects[i] = '<b>' + fObjects[i] + '</b>';
+		}
+	}
+
+	for (i = 0; i < fObjects.length; i++) {
+		oString += fObjects[i];
+		if (i + 1 == fObjects.length) {
+			oString += '.<br><br>';
+		} else if (i + 2 == fObjects.length) {
+			oString += ' and a ';
+		} else {
+			oString += ', ';
+		}
+	}
+	if (fObjects.length == 0) {
+		oString = '';
+	}
+	return oString;
+}
+
+var listExits = function() {
+	var aExits = gameWorld[pLocation].exits;
+	var oString = 'There ';
+	if (aExits.length == 1) {
+		oString += 'is an exit to the ' + aExits[0] + '.<br><br>';
+	} else if (aExits.length > 1) {
+		oString += 'are exits to the ';
+		for (i = 0; i < aExits.length; i++) {
+			oString += aExits[i];
+			if (i + 1 == aExits.length) {
+				oString += '.<br><br>';
+			} else if (i + 2 == aExits.length) {
+				oString += ' and ';
+			} else {
+				oString += ', ';
+			}
+		}
+	} else {
+		oString += 'are no exits.<br><br>';
+	}
+	return oString;
+}
+
+var cryCount = 0;
+
+function readContext(sString) {
+	var splitString = sString.toLowerCase().split(' ');
+	for (i = 2; i < splitString.length; i++) {
+		splitString[1] += ' ' + splitString[i];
+	}
+	if (pCombat == false) {
+		if (synCry.indexOf(splitString[0]) != -1) {
+			switch (cryCount) {
+				case 0:
+					sPrint('The pain inside begins to swell.<br><br>');
+					cryCount++;
+					break;
+				case 1:
+					sPrint('The ocean behind your eyes have reached their limit.<br><br>');
+					cryCount++;
+					break;
+				case 2:
+					sPrint('You can\'t take it anymore.<br><br>');
+					cryCount++;
+					break;
+				case 3:
+					sPrint('You stop holding back. As the tears begin to stream down your face you can feel your mucus take on the same consistency.<br><br>'+
+						'Some time passes...<br><br>That was a good long cry, but you feel ready to move forward now. You wipe away the collection of mucus '+
+						'and tears from your face. You have created a <b>slimy mess</b> at your feet.<br><br>');
+					gameWorld[pLocation].objects.push('slimy mess');
+					cryCount++;
+					break;
+				case 4:
+					sPrint('No more tears. You are ready to move on.<br><br>');
+			}
+		} else if (synHelp.indexOf(splitString[0]) != -1) {
+			sPrint('To take action first type an action followed by a parameter of that action.<br>'+
+				'General Command Examples:<br>- go south<br>- get lantern<br>- look around<br>- check worn box<br>- suicide<br>- gg<br>');
+		} else if (synSuicide.indexOf(splitString[0]) != -1) {
+			playerDeath();
+		} else if (synReturn.indexOf(splitString[0]) != -1) {
+			returnToNote();
+		} else if (splitString[1] == undefined || splitString[1] == '') {
+			sPrint('Your action wasn\'t recognized.<br>Please type \'?\' for assistance.<br><br>');
+		} else if (synInspect.indexOf(splitString[0]) != -1) {
+			inspectAnything(splitString[1]);
+		} else if (synOpen.indexOf(splitString[0]) != -1) {
+			openContainer(splitString[1], '');
+		} else if (synGo.indexOf(splitString[0]) != -1) {
+			moveDirection(splitString[1]);
+		} else if (synGrab.indexOf(splitString[0]) != -1) {
+			grabObject(splitString[1]);
+		} else if (synDrop.indexOf(splitString[0]) != -1) {
+			dropObject(splitString[1]);
+		} else {
+			sPrint('Your action wasn\'t recognized.<br>Please type \'?\' for assistance.<br><br>');
+		}
+	} else if (pCombat == true) {
+		if (splitString[1] == undefined) {
+			sPrint('That wasn\'t recognized as a combat action.<br>Combat Command Examples:<br>- use unarmed<br>- use knife<br><br>');
+		} else if (synUse.indexOf(splitString[0]) != -1) {
+			attackWithObject(splitString[1]);
+		} else if (synSuicide.indexOf(splitString[0]) != -1) {
+			playerDeath();
+		} else {
+			sPrint('That wasn\'t recognized as a combat action.<br>Combat Command Examples:<br>- use unarmed<br>- use knife<br><br>');
+		}
+	}
+}
+
+function returnToNote() {
+	if (drugged == true && mirrord == true) {
+		var keys = Object.keys(gameWorld);
+		if (gameWorld[0].indexOf('folded note') != -1) {
+			sPrint('You recalled to the note in your pocket.<br><br>');
+			dispelDrugMirror();
+		} else {
+			for (i = 1; i < keys.length; i++) {
+				var cRoom = gameWorld[keys[i]];
+				if (cRoom.objects.indexOf('folded note') != -1) {
+					pLocation = parseInt(keys[i]);
+					sPrint('You recalled to the note.<br><br>', 'gotoRoom');
+					dispelDrugMirror();
+					break;
+				}
+			}
+		}
+	} else {
+		sPrint('Your cannot do this.<br><br>');
+	}
+}
+
+function dispelDrugMirror() {
+	drugged = false;
+	mirrord = false;
+	document.getElementById('bodyContent').style.transform = '';
+	document.getElementById('consoleLog').style.animationName = '';
+	document.getElementById('consoleLog').style.animationDuration = '';
+	document.getElementById('consoleLog').style.animationIterationCount = '';
+	document.getElementById('consoleLog').style.animationTimingFunction = '';
+}
+
+function generateLoot() {
+	var keys = Object.keys(gameWorld);
+	for (i = 1; i < keys.length; i++) {
+		var cRoom = gameWorld[keys[i]];
+		for (j = 0; j < cRoom.containers.length; j++) {
+			var cContainer = cRoom.containers[j];
+			var objCount = roll(cntDefinitions[cRoom.containers[j]].spawn);
+			for (k = 0; k < objCount; k++) {
+				cRoom.contents[j].push(cntDefinitions[cContainer].objects[roll([0, cntDefinitions[cContainer].objects.length - 1])]);
+			}
+		}
+	}
+}
+
+function openContainer(oContainer, preText) {
+	cNumber = gameWorld[pLocation].containers.indexOf(oContainer);
+	if (cNumber != -1) {
+		var oString = preText + 'Inside the ' + oContainer + ' you find a ';
+		var cContents = [];
+		cContents = cContents.concat(gameWorld[pLocation].contents[cNumber]);
+		for (i = 0; i < cContents.length ; i++) {
+			if (cContents.indexOf(cContents[i], i+1) != -1) {
+				var tCounter = 1;
+				while (cContents.indexOf(cContents[i], i+1) != -1) {
+					cContents.splice(cContents.indexOf(cContents[i], i+1), 1);
+					tCounter++;
+				}
+				cContents[i] = '<b>' + cContents[i] + '</b>(x' + tCounter + ')';
+			} else {
+				cContents[i] = '<b>' + cContents[i] + '</b>';
+			}
+		}
+		for (i = 0; i < cContents.length; i++) {
+			oString += cContents[i];
+			if (i + 1 == cContents.length) {
+				oString += '.<br><br>';
+			} else if (i + 2 == cContents.length) {
+				oString += ' and a ';
+			} else {
+				oString += ', ';
+			}
+		}
+		if (cContents.length == 0) {
+			oString = preText + 'The ' + oContainer + ' is empty.<br><br>';
+		}
+		sPrint(oString);
+	} else {
+		sPrint('You can\'t open that.<br><br>');
+	}
+}
+
+function inspectAnything(inspected) {
+	if (gameWorld[pLocation].objects.indexOf(inspected) != -1) {
+		sPrint(objDefinitions[inspected].description + '<br><br>');
+	} else if (gameWorld[pLocation].containers.indexOf(inspected) != -1) {
+		openContainer(inspected, cntDefinitions[inspected].description + ' ');
+	} else if (synRoom.indexOf(inspected) != -1) {
+		main();
+	} else {
+		sPrint('You can\'t inspect that.<br><br>');
+	}
+}
+
+function attackWithObject(aObject) {
+	if (synFist.indexOf(aObject) != -1) { //attack unarmed
+		damageEnemy(unarmedDamage);
+	} else if (gameWorld[0].indexOf(aObject) != -1 && objDefinitions[aObject].damage != undefined) { //attack with a weapon
+		damageEnemy(objDefinitions[aObject]);
+	} else if (synDick.indexOf(aObject) != -1) {
+		sPrint('Think you\'re funny huh? Try again...<br><br>');
+	} else if (gameWorld[0].indexOf(aObject) != -1) {
+		sPrint('You cannot attack with that.<br><br>');
+	} else {
+		sPrint('You don\'t have a ' + aObject + '.<br><br>');
+	}
+}
+
+function damageEnemy(attackInfo) {
+	var hitCheck = roll(d20);
+	if (hitCheck >= enmDefinitions[gameWorld[pLocation].enemies[0]].ac) { //hit landed message
+		if (hitCheck > 18) { //critical hit message
+			var damDone = attackInfo.damage[2];
+			var damPrint = '> ' + attackInfo.critMessage + damDone + ' ' + attackInfo.type + ' damage.<br><br>';
+		} else {
+			var damDone = roll(attackInfo.damage);
+			var damPrint = '> You strike for ' + damDone + ' ' + attackInfo.type + ' damage.<br><br>';
+		}
+		enemyHP = enemyHP - damDone;
+		if (enemyHP <= 0) {
+			var printFollow = 'deathReaction';
+		} else {
+			var printFollow = 'combatReaction';
+		}
+		sPrint(damPrint, printFollow);
+	} else { //hit missed message
+		sPrint('> ' + gameWorld[pLocation].enemies[0] + ' dodged your attack.<br><br>', 'combatReaction');
+	}
+}
+
+function victoryMessage() {
+	pCombat = false;
+	var currentEnemy = gameWorld[pLocation].enemies[0];
+	gameWorld[pLocation][enmDefinitions[currentEnemy].death].push(enmDefinitions[currentEnemy].turnTo);
+	if (enmDefinitions[currentEnemy].death == 'containers') {
+		genLoot(enmDefinitions[currentEnemy].turnTo);
+	}
+	gameWorld[pLocation].enemies.pop();
+	sPrint('> You have defeated ' + currentEnemy + '. ' + enmDefinitions[currentEnemy].defeat + '<br><br><i>**combat end**</i><br><br>', 'gotoRoom');
+}
+
+function genLoot(cntName) {
+	var objCount = roll(cntDefinitions[cntName].spawn);
+	gameWorld[pLocation].contents.push([]);
+	for (i = 0; i < objCount; i++) {
+		gameWorld[pLocation].contents[gameWorld[pLocation].contents.length - 1].push(cntDefinitions[cntName].objects[roll([0, cntDefinitions[cntName].objects.length - 1])]);
+	}
+}
+
+function damagePlayer() {
+	var hitCheck = roll(d20);
+	var isDead = '';
+	if (hitCheck >= pAC) { //hit landed message
+		var damDone = roll(enmDefinitions[gameWorld[pLocation].enemies[0]].damage);
+		pHealth = pHealth - damDone;
+		refreshHPDisplay();
+		if (pHealth <= 0) {
+			isDead = ' You have died.';
+		}
+		setTimeout( function() {
+			animateHit();
+		}, 250);
+		setTimeout( function() {
+			if (pHealth <= 0) {
+				playerDeath();
+			}
+		}, 500);
+		var correctCase = gameWorld[pLocation].enemies[0][0].toUpperCase() + gameWorld[pLocation].enemies[0].substring(1);
+		sPrint('<span class="redText">< ' + correctCase + ' strikes for ' + damDone + ' ' + enmDefinitions[gameWorld[pLocation].enemies[0]].type + ' damage.' + isDead + '</span><br><br>');
+	} else { //hit missed message
+		sPrint('< You dodged ' + gameWorld[pLocation].enemies[0] + '\'s attack.<br><br>');
+	}
+}
+
+function refreshHPDisplay() {
+	var healthBars = document.getElementsByClassName('healthTile');
+	while (healthBars.length > 0) {
+		healthBars[0].remove();
+	}
+	for (i = 0; i < pHealth; i++) {
+		if (i == 0)
+			document.getElementById('headContent').innerHTML += '<div class="healthTile"><div class="userHealth hp"></div></div>';
+		else
+			document.getElementById('headContent').innerHTML += '<div class="healthTile"><div class="userHealth armor"></div></div>';
+
+	}
+}
+
+function playerDeath() {
+	var fCounter = 0;
+	var iCounter = 0;
+	var fChange = 0.05;
+	var iChange = 0.01;
+	var fLimit = 1;
+	var fadeLight = setInterval(function() {
+		document.getElementsByClassName('death')[0].style.background = 'radial-gradient(rgba(0, 0, 0, '+iCounter.toFixed(3)+') 50%, rgba(0, 0, 0, '+fCounter.toFixed(3)+'))';
+		fCounter = fCounter + fChange;
+		iCounter = iCounter + iChange;
+		if (iCounter > fLimit) {
+			document.getElementsByClassName('lantern')[0].style.background = 'radial-gradient(rgba(0, 0, 0, '+fLimit+') 50%, rgba(0, 0, 0, '+fLimit+'))';
+			document.getElementsByClassName('youDied')[0].style.color = 'rgba(255, 0, 0, 1)';
+			document.addEventListener("keyup", function(event) {
+				if (event.keyCode == 70) {
+					location.reload();
+				}
+			});
+			clearInterval(fadeLight);
+		}
+	}, 20);
+}
+
+function animateHit() {
+	var movingPieces = ['headContent', 'leftContent', 'bodyContent'];
+	var locValues = [];
+	for (i = 0; i < movingPieces.length; i++) {
+		var cElement = document.getElementById(movingPieces[i]);
+		locValues.push([cElement.offsetLeft, cElement.offsetTop])
+	}
+	for (i = 0; i < movingPieces.length; i++) {
+		var cElement = document.getElementById(movingPieces[i]);
+		var nudgeX = roll([-100, 100]);
+		var nudgeY = roll([-100, 100]); 
+		cElement.style.left = locValues[i][0] + nudgeX + 'px';
+		cElement.style.top = locValues[i][1] + nudgeY + 'px';
+	}
+	document.getElementsByClassName('hit')[0].style.background = 'rgba(255, 0, 0, .25)';
+	setTimeout( function() {
+		for (i = 0; i < movingPieces.length; i++) {
+			var cElement = document.getElementById(movingPieces[i]);
+			cElement.style.left = locValues[i][0] + 'px';
+			cElement.style.top = locValues[i][1] + 'px';
+		}
+		document.getElementsByClassName('hit')[0].style.background = 'rgba(255, 0, 0, 0)';
+	}, 100);
+}
+
+function roll(damageRange) { // min and max included 
+	return Math.floor(Math.random() * (damageRange[1] - damageRange[0] + 1) + damageRange[0]);
+}
+
+function moveDirection(oDir) {
+	var vDirections = [];
+	for (i = 0; i < gameWorld[pLocation].exits.length; i++) {
+		vDirections.push(gameWorld[pLocation].exits[i][0]);
+	}
+	oDir = oDir[0];
+	if (vDirections.indexOf(oDir) == -1) {
+		sPrint('You cannot move in that direction.<br><br>');
+	} else {
+		if (oDir == 'n') {
+			pLocation = pLocation - wLength;
+			main();
+		} else if (oDir == 'w') {
+			pLocation--;
+			main();
+		} else if (oDir == 'e') {
+			pLocation++;
+			main();
+		} else if (oDir == 's') {
+			pLocation = pLocation + wLength;
+			main();
+		}
+	}
+}
+
+function grabObject(oName) {
+	var verbUsage = 'took';
+	if (oName.indexOf('armor') != -1) {
+		verbUsage = 'equipped'
+	}
+	var allContents = [];
+	for (i = 0; i < gameWorld[pLocation].contents.length; i++) {
+		allContents = allContents.concat(gameWorld[pLocation].contents[i]);
+	}
+	if (gameWorld[pLocation].objects.indexOf(oName) > -1) {
+		gameWorld[pLocation].objects.splice(gameWorld[pLocation].objects.indexOf(oName), 1);
+		gameWorld[0].push(oName);
+		addObjectToInventory(oName);
+		sPrint('You '+verbUsage+' the '+oName+'.<br><br>');
+		grabObjectScreenEvents(oName);
+	}
+	else if (allContents.indexOf(oName) > -1) {
+
+		for (i = 0; i < gameWorld[pLocation].contents.length; i++) {
+			var cContents = gameWorld[pLocation].contents[i];
+			if (cContents.indexOf(oName) != -1) {
+				cContents.splice(cContents.indexOf(oName), 1);
+				gameWorld[0].push(oName);
+				addObjectToInventory(oName);
+				sPrint('You '+verbUsage+' the '+oName+'.<br><br>');
+				grabObjectScreenEvents(oName);
+				break;
+			}
+		}
+	} else {
+		sPrint('You cannot take that.<br><br>');
+	}
+}
+
+function grabObjectScreenEvents(oName) {
+	if (oName == 'lantern') {
+		lantern(true);
+	} else if (oName == 'light armor') {
+		pHealth = 6;
+		refreshHPDisplay();
+		obliterateObject('light armor');
+	} else if (oName == 'heavy armor') {
+		pHealth = 11;
+		refreshHPDisplay();
+		obliterateObject('heavy armor');
+	} else if (oName == 'mirror armor') {
+		pHealth = 36;
+		refreshHPDisplay();
+		obliterateObject('mirror armor');
+	} else if (oName == 'hard drugs') {
+		drugDisplay();
+		obliterateObject('hard drugs');
+	} else if (oName == 'mirror shard') {
+		mirrorDisplay();
+		obliterateObject('mirror shard');
+	}
+}
+
+var drugged = false;
+var mirrord = false;
+
+function mirrorDisplay() {
+	document.getElementById('bodyContent').style.transform = 'matrix(-1, 0, 0, 1, 0, 0)';
+	mirrord = true;
+}
+
+function drugDisplay() {
+	document.getElementById('consoleLog').style.animationName = 'rotateColors';
+	document.getElementById('consoleLog').style.animationDuration = '8s';
+	document.getElementById('consoleLog').style.animationIterationCount = 'infinite';
+	document.getElementById('consoleLog').style.animationTimingFunction = 'linear';
+	drugged = true;
+}
+
+function lantern(toggle) {
+	if (toggle == true) {
+		var fCounter = 0.7;
+		var fChange = -0.05;
+		var fLimit = 0;
+	} else {
+		var fCounter = 0;
+		var fChange = 0.05;
+		var fLimit = 0.7;
+	}
+	var fadeLight = setInterval(function() {
+		document.getElementsByClassName('lantern')[0].style.background = 'radial-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, '+fCounter.toFixed(2)+'))';
+		fCounter = fCounter + fChange;
+		if (fCounter < fLimit && toggle == true || fCounter > fLimit && toggle == false) {
+			document.getElementsByClassName('lantern')[0].style.background = 'radial-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, '+fLimit+'))';
+			clearInterval(fadeLight);
+		}
+	}, 20);
+}
+
+function addObjectToInventory(oName) {
+	if (document.getElementById('txt'+oName)) {
+		if (document.getElementById('txt'+oName).innerText.split('(')[1] == undefined) {
+			document.getElementById('txt'+oName).innerText += ' (x2)';
+		} else {
+			var iCount = parseInt(document.getElementById('txt'+oName).innerText.split('(x')[1].split(')')[0]);
+			iCount++;
+			document.getElementById('txt'+oName).innerText = oName + ' (x' + iCount + ')';
+		}
+	} else {
+		createDiv(oName, "invObj", 'leftContent', oName);
+		
+		var buildToolTip = oName +
+			((
+				objDefinitions[oName].damage == undefined) ?
+				'' : '<br>damage: ' + objDefinitions[oName].damage[0] +
+				' - ' + objDefinitions[oName].damage[1] +
+				' ' + objDefinitions[oName].type
+			) +
+			'<br>weight: ' + objDefinitions[oName].weight +
+			'<br><br><i>' + objDefinitions[oName].description + '</i>';
+
+		createDiv('tip'+oName, "tTip", oName, buildToolTip);
+		window.onmousemove = function (e) {
+			var x = e.clientX, y = e.clientY;
+			for (i = 0; i < document.getElementsByClassName('tTip').length; i++) {
+				document.getElementsByClassName('tTip')[i].style.top = (y + 10) + 'px';
+				document.getElementsByClassName('tTip')[i].style.left = (x + 10) + 'px';
+			}
+		};
+	}
+}
+
+function createDiv(objName, clsName, parentEle, textContent) {
+	const newDiv = document.createElement("div");
+	newDiv.id = objName;
+	newDiv.dataValue = 1;
+	newDiv.className = clsName;
+	newDiv.innerHTML = '<span id="txt'+objName+'">' + textContent + '</span>';
+	const currentDiv = document.getElementById("");
+	document.getElementById(parentEle).insertBefore(newDiv, currentDiv);
+}
+
+function dropObject(oName) {
+	if (gameWorld[0].indexOf(oName) > -1) {
+		gameWorld[0].splice(gameWorld[0].indexOf(oName), 1);
+		gameWorld[pLocation].objects.push(oName);
+		removeObjectFromInventory(oName);
+		sPrint('You dropped the '+oName+'.<br><br>');
+		dropObjectScreenEvents(oName);
+	} else {
+		sPrint('You do not have a '+oName+'.<br><br>');
+	}
+}
+
+function obliterateObject(oName) {
+	gameWorld[0].splice(gameWorld[0].indexOf(oName), 1);
+	removeObjectFromInventory(oName);
+}
+
+function dropObjectScreenEvents(oName) {
+	if (oName == 'lantern') {
+		lantern(false);
+	}
+}
+
+function removeObjectFromInventory(oName) {
+	if (document.getElementById('txt'+oName).innerText.split('(')[1] == undefined) {
+		var myobj = document.getElementById(oName);
+		myobj.remove();
+	} else {
+		var iCount = parseInt(document.getElementById('txt'+oName).innerText.split('(x')[1].split(')')[0]);
+		iCount--;
+		if (iCount > 1) {
+			document.getElementById('txt'+oName).innerText = oName + ' (x' + iCount + ')';
+		} else {
+			document.getElementById('txt'+oName).innerText = oName;
+		}
+	}
+}
+
+</script>
+</head>
+<body>
+	<div id="container">
+		<div id="headContent">
+			<div class="headTile"><img class="userIcon" src="moon2JR.0"></div>
+			<div class="headTile"><div class="labelHP">:HP</div></div>
+		</div>
+		<div id="leftContent">
+			<div class="leftTile"><div class="textSpacing">ESCAPE!</div></div>
+			<div class="leftTile" id="inventory"><div class="textSpacing">Inventory</div></div>
+		</div>
+		<div id="bodyContent">
+			<div id="consoleLog"></div>
+			<div id="consoleInput">
+				<input id="playerInput" type="text">
+			</div>
+		</div>
+	</div>
+	<div class="lantern overlay"></div>
+	<div class="hit overlay"></div>
+	<div class="death overlay"></div>
+	<div class="youDied overlay" style="">YOU DIED<br>press f to restart</div>
+</body>
+<script type="text/javascript">
+	
+	var pInput = document.getElementById("playerInput");
+	var iGlobal = 0;
+	var sGlobal = '';
+
+	pInput.addEventListener("keyup", function(event) {
+		if (event.keyCode === 13) {
+			event.preventDefault();
+			sendText();
+		}
+	});
+
+	main();
+
+</script>
+</html>
